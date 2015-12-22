@@ -20,15 +20,23 @@ module RubyBox
       keys.each {|key| @@has_many_paginated << key.to_s}
     end
 
-    def move_to( folder_id, name=nil )
+    def move_to(folder_id)
+      url = "#{RubyBox::API_URL}/#{resource_name}/#{id}"
+      uri = URI.parse(url)
+
       # Allow either a folder_id or a folder object
       # to be passed in.
       folder_id = folder_id.id if folder_id.instance_of?(RubyBox::Folder)
+      self.parent = { "id" => folder_id }
 
-      self.name = name if name
-      self.parent = {"id" => folder_id}
+      request = Net::HTTP::Put.new(uri.path, {
+        "if-match" => etag,
+        "Content-Type" => 'application/json',
+      })
+      request.body = JSON.dump(serialize(['parent']))
 
-      update
+      @raw_item = @session.request(uri, request)
+      self
     end
 
     def update
@@ -41,7 +49,7 @@ module RubyBox
         "if-match" => etag,
         "Content-Type" => 'application/json'
       })
-      request.body = JSON.dump(serialize)
+      request.body = JSON.dump(serialize(update_fields))
 
       @raw_item = @session.request(uri, request)
       self
@@ -168,14 +176,13 @@ module RubyBox
       end
     end
 
-    def serialize
-      update_fields.inject({}) {|hash, field| hash[field] = @raw_item[field]; hash}
+    def serialize(serialize_fields)
+      serialize_fields.inject({}) {|hash, field| hash[field] = @raw_item[field]; hash}
     end
 
     def update_fields
       ['name', 'description', 'parent']
     end
-
 
   end
 end
