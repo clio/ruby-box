@@ -21,29 +21,18 @@ module RubyBox
     end
 
     def move_to(folder_id)
-      url = "#{RubyBox::API_URL}/#{resource_name}/#{id}"
-      uri = URI.parse(url)
-
       # Allow either a folder_id or a folder object
       # to be passed in.
       folder_id = folder_id.id if folder_id.instance_of?(RubyBox::Folder)
       self.parent = { "id" => folder_id }
-
-      request = Net::HTTP::Put.new(uri.path, {
-        "if-match" => etag,
-        "Content-Type" => 'application/json',
-      })
-      request.body = JSON.dump(serialize(['parent']))
-
-      @raw_item = @session.request(uri, request)
-      self
+      update(["parent"])
     end
 
-    def update
+    def update(update_fields = nil)
       reload_meta unless etag
 
-      url = "#{RubyBox::API_URL}/#{resource_name}/#{id}"
-      uri = URI.parse(url)
+      update_fields ||= default_update_fields
+      uri = URI.parse("#{RubyBox::API_URL}/#{resource_name}/#{id}")
 
       request = Net::HTTP::Put.new(uri.path, {
         "if-match" => etag,
@@ -87,7 +76,7 @@ module RubyBox
       # update @raw_item hash if this appears to be a setter.
       setter = method.to_s.end_with?('=')
       key = key[0...-1] if setter
-      @raw_item[key] = args[0] if setter and update_fields.include?(key)
+      @raw_item[key] = args[0] if setter and default_update_fields.include?(key)
       
       # we may have a mini version of the object loaded, fix this.
       reload_meta if @raw_item[key].nil? and has_mini_format?
@@ -180,7 +169,7 @@ module RubyBox
       serialize_fields.inject({}) {|hash, field| hash[field] = @raw_item[field]; hash}
     end
 
-    def update_fields
+    def default_update_fields
       ['name', 'description', 'parent']
     end
 
