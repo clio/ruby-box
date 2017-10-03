@@ -366,21 +366,6 @@ describe RubyBox, :skip => true do
         moved_file.delete
       end
 
-      it "allows file to be renamed when moved" do
-        file = @client.upload_file('spec/fixtures/遠志教授.jpg', '/ruby-box_gem_testing/')
-        folder = @client.folder('/ruby-box_gem_testing/cool stuff/')
-
-        file.move_to(folder, 'banana.jpg')
-        original_file = @client.file('/ruby-box_gem_testing/遠志教授.jpg')
-        original_file.should == nil # the original should no longer exist.
-
-        moved_file = @client.file('/ruby-box_gem_testing/cool stuff/banana.jpg')
-        moved_file.name.should == 'banana.jpg' # the file should exist in the new location.
-        moved_file.size.should == file.size
-
-        moved_file.delete
-      end
-
     end
 
   end
